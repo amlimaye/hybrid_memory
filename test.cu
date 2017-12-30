@@ -2,55 +2,85 @@
 #include <gtest/gtest.h>
 #include "hybrid_memory.hxx"
 
+template <typename T>
 class HybridMemoryTest : public ::testing::Test {
 protected:
     virtual void SetUp() {
-        _ptr = new int[100];
-        _hm = utils::hybrid_memory<int>(_ptr, 100);
-        _hm_null_init = utils::hybrid_memory<int>();
+        _ptr = new T[100];
+        _hm = utils::hybrid_memory<T>(_ptr, 100);
+        _hm_null_init = utils::hybrid_memory<T>();
     }
 
     virtual void TearDown() {
         delete[] _ptr;
     }
 
-    int* _ptr; 
-    utils::hybrid_memory<int> _hm;
-    utils::hybrid_memory<int> _hm_null_init;
+    T* _ptr; 
+    utils::hybrid_memory<T> _hm;
+    utils::hybrid_memory<T> _hm_null_init;
 };
 
-TEST_F(HybridMemoryTest, HostPointer) {
-    int* host_ptr = _hm.host();
-    int* null_host_ptr = _hm_null_init.host();
-    EXPECT_EQ(_ptr, host_ptr);
+typedef testing::Types<uint32_t, int, float> TestingTypes;
+
+template <typename T>
+T* get_fill_values();
+
+template<>
+uint32_t* get_fill_values<uint32_t>() {
+    uint32_t* vals_ptr = new uint32_t[3];
+    vals_ptr[0] = 0;
+    vals_ptr[1] = 1;
+    vals_ptr[2] = 2;
+    return vals_ptr;
+}
+
+template<>
+int* get_fill_values<int>() {
+    int* vals_ptr = new int[3];
+    vals_ptr[0] = -1;
+    vals_ptr[1] = 0;
+    vals_ptr[2] = 1;
+    return vals_ptr;
+}
+
+template<>
+float* get_fill_values<float>() {
+    float* vals_ptr = new float[3];
+    vals_ptr[0] = -0.1;
+    vals_ptr[1] = 0.0;
+    vals_ptr[2] = 0.1;
+    return vals_ptr;
+}
+
+TYPED_TEST_CASE(HybridMemoryTest, TestingTypes);
+
+TYPED_TEST(HybridMemoryTest, HostPointer) {
+    auto host_ptr = this->_hm.host();
+    auto null_host_ptr = this->_hm_null_init.host();
+    EXPECT_EQ(this->_ptr, host_ptr);
     EXPECT_EQ(nullptr, null_host_ptr);
 }
 
-TEST_F(HybridMemoryTest, Size) {
-    EXPECT_EQ(_hm.size(), 100);
-    EXPECT_EQ(_hm_null_init.size(), 0);
+TYPED_TEST(HybridMemoryTest, Size) {
+    EXPECT_EQ(this->_hm.size(), 100);
+    EXPECT_EQ(this->_hm_null_init.size(), 0);
 }
 
-TEST_F(HybridMemoryTest, FillOnHost) {
-    _hm.fill(0);
-    for (int k = 0; k < _hm.size(); k++) {
-        EXPECT_EQ(0, _hm.host()[k]);
-    }
+TYPED_TEST(HybridMemoryTest, FillOnHost) {
+    auto fill_values = get_fill_values<TypeParam>();
 
-    _hm.fill(10);
-    for (int k = 0; k < _hm.size(); k++) {
-        EXPECT_EQ(10, _hm.host()[k]);
-    }
-
-    _hm.fill(100);
-    for (int k = 0; k < _hm.size(); k++) {
-        EXPECT_EQ(100, _hm.host()[k]);
+    for (int i = 0; i < 3; i++) {
+        auto fval = fill_values[i];
+        this->_hm.fill(fval);
+        for (int k = 0; k < this->_hm.size(); k++) {
+            EXPECT_EQ(fval, this->_hm.host()[k]);
+        }
     }
 }
 
-TEST_F(HybridMemoryTest, DeviceNotActive) {
+TYPED_TEST(HybridMemoryTest, DeviceNotActive) {
     try {
-        int* device_ptr = _hm.device();
+        auto device_ptr = this->_hm.device();
         FAIL() << "Expected std::runtime_error";
     } catch (const std::runtime_error& err) {
         EXPECT_EQ(err.what(), std::string("not active on the device!"));
@@ -59,10 +89,10 @@ TEST_F(HybridMemoryTest, DeviceNotActive) {
     }
 }
 
-TEST_F(HybridMemoryTest, HostNotActive) {
-    _hm.upload();
+TYPED_TEST(HybridMemoryTest, HostNotActive) {
+    this->_hm.upload();
     try {
-        int* host_ptr = _hm.host();
+        auto host_ptr = this->_hm.host();
         FAIL() << "Expected std::runtime_error";
     } catch (const std::runtime_error& err) {
         EXPECT_EQ(err.what(), std::string("not active on the host!"));
@@ -71,19 +101,17 @@ TEST_F(HybridMemoryTest, HostNotActive) {
     }
 }
 
-TEST_F(HybridMemoryTest, UploadDownloadIntegrity) {
-    _hm.fill(0);
-    _hm.upload();
-    _hm.download();
-    for (int k = 0; k < _hm.size(); k++) {
-        EXPECT_EQ(0, _hm.host()[k]);
-    }
-
-    _hm.fill(10);
-    _hm.upload();
-    _hm.download();
-    for (int k = 0; k < _hm.size(); k++) {
-        EXPECT_EQ(10, _hm.host()[k]);
+TYPED_TEST(HybridMemoryTest, UploadDownloadIntegrity) {
+    auto fill_values = get_fill_values<TypeParam>();
+    
+    for (int i = 0; i < 3; i++) {
+        auto fval = fill_values[i];
+        this->_hm.fill(fval);
+        this->_hm.upload();
+        this->_hm.download();
+        for (int k = 0; k < this->_hm.size(); k++) {
+            EXPECT_EQ(fval, this->_hm.host()[k]);
+        }
     }
 }
 
