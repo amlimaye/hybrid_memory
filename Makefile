@@ -1,14 +1,14 @@
 nvcc=/usr/local/cuda/bin/nvcc
 ldflags=-lgtest
-cxxflags=-std=c++11
+cxxflags=-std=c++11 -g
 build_dir=build
 
-test: test.cu
-	mkdir build
+test: Makefile test.cu
+	mkdir -p build
 	$(nvcc) $(cxxflags) $(ldflags) -o $(build_dir)/test test.cu
 
-dotest: test
+dotest: Makefile test
 	$(build_dir)/test
 
-clean:
+clean: Makefile
 	rm -rf build
