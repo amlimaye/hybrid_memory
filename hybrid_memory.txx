@@ -1,31 +1,35 @@
 namespace utils {
-
-    //default ctor. nulls out the pointers.
+    //ctor, allocates memory on the host
     template <typename T>
-    hybrid_memory<T>::hybrid_memory() :
-        m_host_ptr(nullptr),
-        m_device_ptr(nullptr),
-        m_active_on(where_t::HOST),
-        m_size(0),
-        m_alloc_on_device(false)
-    {};
+    hybrid_memory<T>::hybrid_memory(size_t a_size) {
+        m_host_ptr = new T[a_size];
+        m_device_ptr = nullptr;
 
-    //this ctor holds an already allocated pointer
-    //it does _not_ own it; you are responsible for deleting it!
+        m_alloc_on_host = true;
+        m_alloc_on_device = false;
+
+        m_active_on = where_t::HOST;
+        m_size = a_size;
+    };
+
+    //dtor, deallocates on the host and maybe the device
     template <typename T>
-    hybrid_memory<T>::hybrid_memory(T* a_ptr, size_t a_size) :
-        m_host_ptr(a_ptr),
-        m_device_ptr(nullptr),
-        m_active_on(where_t::HOST),
-        m_size(a_size),
-        m_alloc_on_device(false)
-    {};
+    hybrid_memory<T>::~hybrid_memory() {
+        if (m_alloc_on_host) {
+            delete[] m_host_ptr;
+        }
+
+        if (m_alloc_on_device) {
+            cudaError_t errcode = cudaFree(m_device_ptr);
+            if (errcode != cudaSuccess) {throw std::runtime_error("failed freeing device memory!");};
+        }
+    };
 
     //writes a default value to the whole block of memory if on the host
     template <typename T>
     void hybrid_memory<T>::fill(const T& elem) {
         if (m_active_on != where_t::HOST) {
-            throw std::runtime_error("can only zero on the host!");
+            throw std::runtime_error("can only fill on the host!");
         }
         std::fill(m_host_ptr, m_host_ptr + m_size, elem);
     };
@@ -33,8 +37,11 @@ namespace utils {
     //if active on the host, returns a host pointer 
     template <typename T>
     T* hybrid_memory<T>::host() const {
-        if (m_active_on == where_t::HOST) {return m_host_ptr;}
-        else {throw std::runtime_error("not active on the host!");}
+        if (m_active_on == where_t::HOST) {
+            return m_host_ptr;
+        } else {
+            throw std::runtime_error("not active on the host!");
+        }
     };
 
     //if active on the device, returns a device pointer    
