@@ -8,7 +8,7 @@ protected:
     utils::hybrid_memory<T> _hm = utils::hybrid_memory<T>(100);
 };
 
-typedef testing::Types<uint32_t, int, float> TestingTypes;
+typedef testing::Types<uint32_t, int, float, double> TestingTypes;
 
 template <typename T>
 T* get_fill_values();
@@ -34,6 +34,15 @@ int* get_fill_values<int>() {
 template<>
 float* get_fill_values<float>() {
     float* vals_ptr = new float[3];
+    vals_ptr[0] = -0.1;
+    vals_ptr[1] = 0.0;
+    vals_ptr[2] = 0.1;
+    return vals_ptr;
+}
+
+template<>
+double* get_fill_values<double>() {
+    double* vals_ptr = new double[3];
     vals_ptr[0] = -0.1;
     vals_ptr[1] = 0.0;
     vals_ptr[2] = 0.1;
