@@ -22,12 +22,12 @@ public:
     size_t      size() const {return m_size;};
 
 private:
-    T*          m_host_ptr;
-    T*          m_device_ptr;
-    where_t     m_active_on;
-    size_t      m_size;
-    bool        m_alloc_on_host;
-    bool        m_alloc_on_device;
+    T*              m_host_ptr;
+    T*              m_device_ptr;
+    where_t         m_active_on;
+    const size_t    m_size;
+    bool            m_alloc_on_host;
+    bool            m_alloc_on_device;
 };
 
 }
