@@ -5,19 +5,7 @@
 template <typename T>
 class HybridMemoryTest : public ::testing::Test {
 protected:
-    virtual void SetUp() {
-        _ptr = new T[100];
-        _hm = utils::hybrid_memory<T>(_ptr, 100);
-        _hm_null_init = utils::hybrid_memory<T>();
-    }
-
-    virtual void TearDown() {
-        delete[] _ptr;
-    }
-
-    T* _ptr; 
-    utils::hybrid_memory<T> _hm;
-    utils::hybrid_memory<T> _hm_null_init;
+    utils::hybrid_memory<T> _hm = utils::hybrid_memory<T>(100);
 };
 
 typedef testing::Types<uint32_t, int, float> TestingTypes;
@@ -55,15 +43,16 @@ float* get_fill_values<float>() {
 TYPED_TEST_CASE(HybridMemoryTest, TestingTypes);
 
 TYPED_TEST(HybridMemoryTest, HostPointer) {
-    auto host_ptr = this->_hm.host();
-    auto null_host_ptr = this->_hm_null_init.host();
-    EXPECT_EQ(this->_ptr, host_ptr);
-    EXPECT_EQ(nullptr, null_host_ptr);
+    this->_hm.host();
+}
+
+TYPED_TEST(HybridMemoryTest, DevicePointer) {
+    this->_hm.upload();
+    auto device_ptr = this->_hm.device();
 }
 
 TYPED_TEST(HybridMemoryTest, Size) {
     EXPECT_EQ(this->_hm.size(), 100);
-    EXPECT_EQ(this->_hm_null_init.size(), 0);
 }
 
 TYPED_TEST(HybridMemoryTest, FillOnHost) {
@@ -75,6 +64,18 @@ TYPED_TEST(HybridMemoryTest, FillOnHost) {
         for (int k = 0; k < this->_hm.size(); k++) {
             EXPECT_EQ(fval, this->_hm.host()[k]);
         }
+    }
+}
+
+TYPED_TEST(HybridMemoryTest, FillOnDevice) {
+    try {
+        this->_hm.upload();
+        this->_hm.fill(0);
+        FAIL() << "Expected std::runtime_error";
+    } catch (const std::runtime_error& err) {
+        EXPECT_EQ(err.what(), std::string("can only fill on the host!"));
+    } catch(...) {
+        FAIL() << "Expected std::runtime_error";
     }
 }
 
