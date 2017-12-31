@@ -1,16 +1,14 @@
 namespace utils {
     //ctor, allocates memory on the host
     template <typename T>
-    hybrid_memory<T>::hybrid_memory(size_t a_size) {
-        m_host_ptr = new T[a_size];
-        m_device_ptr = nullptr;
-
-        m_alloc_on_host = true;
-        m_alloc_on_device = false;
-
-        m_active_on = where_t::HOST;
-        m_size = a_size;
-    };
+    hybrid_memory<T>::hybrid_memory(size_t a_size) :
+        m_host_ptr(new T[a_size]),
+        m_device_ptr(nullptr),
+        m_alloc_on_host(true),
+        m_alloc_on_device(false),
+        m_active_on(where_t::HOST),
+        m_size(a_size)
+    {};
 
     //dtor, deallocates on the host and maybe the device
     template <typename T>
