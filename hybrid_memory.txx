@@ -19,7 +19,9 @@ namespace utils {
 
         if (m_alloc_on_device) {
             cudaError_t errcode = cudaFree(m_device_ptr);
-            if (errcode != cudaSuccess) {throw std::runtime_error("failed freeing device memory!");};
+            if (errcode != cudaSuccess) {
+                throw std::runtime_error("failed freeing device memory!");
+            };
         }
     };
 
@@ -52,18 +54,28 @@ namespace utils {
     //moves memory from host -> device 
     template <typename T>
     void hybrid_memory<T>::upload() {
-        if (m_active_on != where_t::HOST) {throw std::runtime_error("not active on the host!");}
+        if (m_active_on != where_t::HOST) {
+            throw std::runtime_error("not active on the host!");
+        }
 
         //allocate device memory if it hasn't been done already
         if (!m_alloc_on_device) {
-            cudaError_t errcode = cudaMalloc(&m_device_ptr, m_size * sizeof(T));
-            if (errcode != cudaSuccess) {throw std::runtime_error("device memory allocation failed!");}
+            cudaError_t errcode = cudaMalloc(&m_device_ptr,
+                                             m_size * sizeof(T));
+            if (errcode != cudaSuccess) {
+                throw std::runtime_error("device memory allocation failed!");
+            }
             m_alloc_on_device = true;
         }
 
         //copy over to device memory
-        cudaError_t errcode = cudaMemcpy(m_device_ptr, m_host_ptr, m_size * sizeof(T), cudaMemcpyHostToDevice);
-        if (errcode != cudaSuccess) {throw std::runtime_error("memcopy to device failed!");}
+        cudaError_t errcode = cudaMemcpy(m_device_ptr, 
+                                         m_host_ptr, 
+                                         m_size * sizeof(T),
+                                         cudaMemcpyHostToDevice);
+        if (errcode != cudaSuccess) {
+            throw std::runtime_error("memcopy to device failed!");
+        }
 
         m_active_on = where_t::DEVICE;
     };
@@ -71,11 +83,18 @@ namespace utils {
     //moves memory from device -> host
     template <typename T>
     void hybrid_memory<T>::download() {
-        if (m_active_on != where_t::DEVICE) {throw std::runtime_error("not active on the device!");}
+        if (m_active_on != where_t::DEVICE) {
+            throw std::runtime_error("not active on the device!");
+        }
 
         //copy over to host memory
-        cudaError_t errcode = cudaMemcpy(m_host_ptr, m_device_ptr, m_size * sizeof(T), cudaMemcpyDeviceToHost);
-        if (errcode != cudaSuccess) {throw std::runtime_error("memcopy to host failed!");}
+        cudaError_t errcode = cudaMemcpy(m_host_ptr, 
+                                         m_device_ptr, 
+                                         m_size * sizeof(T), 
+                                         cudaMemcpyDeviceToHost);
+        if (errcode != cudaSuccess) {
+            throw std::runtime_error("memcopy to host failed!");
+        }
         
         m_active_on = where_t::HOST;
     };
